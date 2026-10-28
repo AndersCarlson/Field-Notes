@@ -27,14 +27,13 @@
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
   }
-  .wrap { max-width: 1200px; margin: 0 auto; padding: 24px 24px 32px; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
 
 
 
   /* Stage */
   .stage {
     position: relative;
-    height: 850px;
     touch-action: pan-y;
   }
   .card {
@@ -88,10 +87,9 @@
   .ready .card.dragging { transition: none; }
 
   @media (max-width: 720px) {
-    .wrap { padding: 16px 16px 24px; }
-    .stage { height: 1280px; }
-    .card figcaption { font-size: 12px; }
-    .card figcaption strong { font-size: 17px; }
+    .wrap { padding: 0 16px; }
+    .card figcaption { margin-top: 8px; font-size: 11px; }
+    .card figcaption strong { font-size: 15px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .card, .ready .card { transition: none; }
@@ -110,7 +108,7 @@
    - title / caption: text under each piece
    - object:  true for records/books (no shadow box, blends into page)
    - desk / mobile: starting layout
-       x, y = position as % of the stage (top-left corner of the card)
+       x, y = position as % of the stage width (top-left corner of the card)
        w    = width as % of the stage
        r    = rotation in degrees
    ============================================================ */
@@ -125,17 +123,17 @@ const IMG = {
 
 const NOTES = [
   { src: IMG.painting, title: "Mt. Wilson", caption: "Oil on canvas, 2024",
-    desk: { x: 3,  y: 5,  w: 26, r: -4 },  mobile: { x: 2,  y: 1,  w: 58, r: -3 } },
+    desk: { x: 3,  y: 3.7, w: 26, r: -4 },  mobile: { x: 2,  y: 0,   w: 48, r: -3 } },
   { src: IMG.ski, title: "Skinning up Mt. Hood", caption: "A crisp morning in the mountains",
-    desk: { x: 31, y: 1,  w: 35, r: 2.5 }, mobile: { x: 4,  y: 35, w: 62, r: -2 } },
+    desk: { x: 31, y: 0.7, w: 35, r: 2.5 }, mobile: { x: 3,  y: 81,  w: 52, r: -2 } },
   { src: IMG.album, object: true, title: "Purgatory, Tyler Childers", caption: "On repeat",
-    desk: { x: 70, y: 5,  w: 27, r: 5 },   mobile: { x: 46, y: 19, w: 52, r: 5 } },
+    desk: { x: 70, y: 3.7, w: 27, r: 5 },   mobile: { x: 52, y: 33.5, w: 44, r: 5 } },
   { src: IMG.river, title: "Down the canyon", caption: "Boating my bucket list river",
-    desk: { x: 11, y: 52, w: 22, r: 3 },   mobile: { x: 4,  y: 59, w: 46, r: -3 } },
+    desk: { x: 11, y: 38.4, w: 22, r: 3 },  mobile: { x: 4,  y: 140, w: 40, r: -3 } },
   { src: IMG.dog, title: "Trail partner", caption: "Always in front",
-    desk: { x: 37, y: 50, w: 22, r: -5 },  mobile: { x: 52, y: 52, w: 44, r: 4 } },
+    desk: { x: 37, y: 36.9, w: 22, r: -5 }, mobile: { x: 54, y: 95,  w: 38, r: 4 } },
   { src: IMG.book, object: true, title: "Into Thin Air", caption: "A favorite read",
-    desk: { x: 66, y: 46, w: 18, r: -3 },  mobile: { x: 50, y: 78, w: 38, r: 3 } }
+    desk: { x: 66, y: 34, w: 18, r: -3 },   mobile: { x: 52, y: 165, w: 34, r: 3 } }
 ];
 
 /* ---------- Build ---------- */
@@ -164,14 +162,23 @@ function place(c, x, y, r) {
   c.el.style.setProperty("--r", `${r}deg`);
 }
 
-function home(c) {
-  const L = c.n[layoutKey()];
-  const W = stage.clientWidth, H = stage.clientHeight;
-  c.el.style.setProperty("--w", `${L.w}%`);
-  place(c, (L.x / 100) * W, (L.y / 100) * H, L.r);
+/* Lay out every card, then size the stage to fit them exactly (no empty space above or below) */
+function tidy() {
+  const key = layoutKey(), W = stage.clientWidth;
+  cards.forEach(c => c.el.style.setProperty("--w", `${c.n[key].w}%`));
+  const boxes = cards.map(c => {
+    const L = c.n[key];
+    const w = (L.w / 100) * W, h = c.el.offsetHeight;
+    const a = Math.abs(L.r * Math.PI / 180);
+    const half = (w * Math.sin(a) + h * Math.cos(a)) / 2;   // half-height once rotated
+    const x = (L.x / 100) * W, y = (L.y / 100) * W;
+    return { c, L, x, y, top: y + h / 2 - half, bottom: y + h / 2 + half };
+  });
+  const top = Math.min(...boxes.map(b => b.top));
+  const bottom = Math.max(...boxes.map(b => b.bottom));
+  stage.style.height = `${Math.ceil(bottom - top)}px`;
+  boxes.forEach(b => place(b.c, b.x, b.y - top, b.L.r));
 }
-
-function tidy() { cards.forEach(home); }
 
 /* Keep a card inside the stage */
 function clamp(c, x, y) {
@@ -233,11 +240,12 @@ stage.addEventListener("keydown", e => {
 
 
 /* Re-lay out when switching between desktop and mobile */
-let lastKey = layoutKey();
+let lastW = stage.clientWidth, rt;
 window.addEventListener("resize", () => {
-  const k = layoutKey();
-  if (k !== lastKey) { lastKey = k; tidy(); }
-  else cards.forEach(c => { const [x, y] = clamp(c, c.x, c.y); place(c, x, y, c.r); });
+  clearTimeout(rt);
+  rt = setTimeout(() => {
+    if (stage.clientWidth !== lastW) { lastW = stage.clientWidth; tidy(); }
+  }, 120);
 });
 
 /* Initial layout, then fade in once images have sized */
@@ -248,6 +256,8 @@ Promise.all([...stage.querySelectorAll("img")].map(img =>
   tidy();
   requestAnimationFrame(() => document.body.classList.add("ready"));
 });
+/* Captions change height once the web fonts arrive */
+if (document.fonts) document.fonts.ready.then(tidy);
 </script>
 </body>
 </html>
