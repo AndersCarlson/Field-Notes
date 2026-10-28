@@ -8,18 +8,18 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 <style>
+  /* Two draggable boards (Life, Tools) under a pill tab switch; transparent so it sits on any page */
   :root {
-    --bg: #f6f4ef;
     --ink: #000000;
     --muted: rgba(0, 0, 0, 0.6);
-    --rule: #dcd8ce;
+    --track: rgba(0, 0, 0, 0.05);
+    --paper: #ffffff;
     --serif: "Newsreader", "Source Serif 4", Georgia, serif;
     --sans: "Inter", system-ui, -apple-system, sans-serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { background: transparent; }
   body {
-    background: transparent;
     color: var(--ink);
     font-family: var(--sans);
     font-size: 14px;
@@ -29,13 +29,42 @@
   }
   .wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
 
-
-
-  /* Stage */
-  .stage {
+  /* Tabs */
+  .tabs {
     position: relative;
-    touch-action: pan-y;
+    display: inline-flex;
+    gap: 2px;
+    padding: 4px;
+    margin-bottom: 28px;
+    background: var(--track);
+    border-radius: 999px;
   }
+  .tabs .indicator {
+    position: absolute;
+    top: 4px; bottom: 4px; left: 0;
+    width: 0;
+    background: var(--ink);
+    border-radius: 999px;
+    transition: transform .35s cubic-bezier(.2,.7,.2,1), width .35s cubic-bezier(.2,.7,.2,1);
+  }
+  .tabs button {
+    position: relative;
+    z-index: 1;
+    font: 500 14px/1 var(--sans);
+    color: var(--muted);
+    background: none;
+    border: 0;
+    border-radius: 999px;
+    padding: 9px 18px;
+    cursor: pointer;
+    transition: color .25s ease;
+  }
+  .tabs button:hover { color: var(--ink); }
+  .tabs button[aria-selected="true"] { color: #fff; }
+  .tabs button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  /* Board */
+  .stage { position: relative; touch-action: pan-y; }
   .card {
     position: absolute;
     top: 0; left: 0;
@@ -45,21 +74,22 @@
     -webkit-user-select: none;
     touch-action: none;
     transform: translate(var(--x), var(--y)) rotate(var(--r));
-    transition: transform .6s cubic-bezier(.2,.7,.2,1);
     will-change: transform;
+    opacity: 0;
   }
-  .card.dragging { cursor: grabbing; transition: none; }
+  .stage.ready .card {
+    opacity: 1;
+    transition: transform .6s cubic-bezier(.2,.7,.2,1), opacity .5s ease;
+    transition-delay: var(--d, 0ms);
+  }
+  .stage.ready .card.dragging { cursor: grabbing; transition: none; }
   .card .media {
     position: relative;
     transition: transform .25s ease, box-shadow .25s ease;
     box-shadow: 0 1px 2px rgba(29,28,26,.08), 0 8px 24px rgba(29,28,26,.08);
   }
   .card.object .media { box-shadow: none; }
-  .card img {
-    display: block; width: 100%; height: auto;
-    pointer-events: none;
-    -webkit-user-drag: none;
-  }
+  .card img { display: block; width: 100%; height: auto; pointer-events: none; -webkit-user-drag: none; }
   .card:hover .media { transform: scale(1.015); }
   .card.dragging .media {
     transform: scale(1.04);
@@ -67,12 +97,7 @@
   }
   .card.object.dragging .media { box-shadow: none; filter: drop-shadow(0 18px 24px rgba(29,28,26,.18)); }
   .card:focus-visible { outline: 1px solid var(--ink); outline-offset: 8px; }
-  .card figcaption {
-    margin-top: 10px;
-    font-size: 14px;
-    line-height: 1.4;
-    color: var(--muted);
-  }
+  .card figcaption { margin-top: 10px; font-size: 14px; line-height: 1.4; color: var(--muted); }
   .card figcaption strong {
     display: block;
     font-family: var(--serif); font-weight: 600;
@@ -80,184 +105,257 @@
     margin-bottom: 2px;
   }
 
-  /* Entrance */
-  .card { opacity: 0; }
-  .ready .card { opacity: 1; transition: transform .6s cubic-bezier(.2,.7,.2,1), opacity .6s ease; transition-delay: var(--d, 0ms); }
-  .ready .card.dragging, .ready .card.settled { transition-delay: 0ms; }
-  .ready .card.dragging { transition: none; }
+  /* Tool cards: typeset index cards instead of photos */
+  .paper {
+    aspect-ratio: 4 / 5;
+    background: var(--paper);
+    padding: 18px 18px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .paper .kind {
+    font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+  }
+  .paper .name {
+    font-family: var(--serif); font-weight: 600;
+    font-size: clamp(26px, 3vw, 40px); line-height: 1; letter-spacing: -0.02em;
+  }
 
   @media (max-width: 720px) {
     .wrap { padding: 0 16px; }
+    .tabs { margin-bottom: 20px; }
     .card figcaption { margin-top: 8px; font-size: 11px; }
     .card figcaption strong { font-size: 15px; }
+    .paper { padding: 12px 12px 14px; }
+    .paper .kind { font-size: 9px; }
+    .paper .name { font-size: 24px; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .card, .ready .card { transition: none; }
+    .stage.ready .card, .tabs .indicator { transition: none; }
   }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <section class="stage" id="stage" aria-label="Draggable collage of paintings and photos"></section>
+  <div class="tabs" role="tablist" aria-label="Play">
+    <span class="indicator" aria-hidden="true"></span>
+    <button role="tab" id="tab-life" aria-controls="board-life" aria-selected="true">Life</button>
+    <button role="tab" id="tab-tools" aria-controls="board-tools" aria-selected="false" tabindex="-1">Tools</button>
+  </div>
+
+  <section class="stage" id="board-life" role="tabpanel" aria-labelledby="tab-life"></section>
+  <section class="stage" id="board-tools" role="tabpanel" aria-labelledby="tab-tools" hidden></section>
 </div>
 
 <script>
 /* ============================================================
-   EDIT YOUR NOTES HERE
-   - src:     image URL or embedded data URI
-   - title / caption: text under each piece
-   - object:  true for records/books (no shadow box, blends into page)
-   - desk / mobile: starting layout
-       x, y = position as % of the stage width (top-left corner of the card)
-       w    = width as % of the stage
-       r    = rotation in degrees
+   EDIT YOUR BOARDS HERE
+   Photo cards:  src, title, caption, object (true = record/book, no shadow box)
+   Tool cards:   tool (big name on the card), kind (small label), title, caption
+   desk / mobile: starting layout
+     x, y = position as % of the board width (top-left corner of the card)
+     w    = width as % of the board
+     r    = rotation in degrees
    ============================================================ */
-const IMG = {
-  "ski": "ski.jpg",
-  "album": "album.webp",
-  "dog": "dog.jpg",
-  "painting": "painting.jpg",
-  "book": "book.jpg",
-  "river": "river.jpg"
-};
-
-const NOTES = [
-  { src: IMG.painting, title: "Mt. Wilson", caption: "Oil on canvas, 2024",
-    desk: { x: 3,  y: 3.7, w: 26, r: -4 },  mobile: { x: 2,  y: 0,   w: 48, r: -3 } },
-  { src: IMG.ski, title: "Skinning up Mt. Hood", caption: "A crisp morning in the mountains",
-    desk: { x: 31, y: 0.7, w: 35, r: 2.5 }, mobile: { x: 3,  y: 81,  w: 52, r: -2 } },
-  { src: IMG.album, object: true, title: "Purgatory, Tyler Childers", caption: "On repeat",
+const LIFE = [
+  { src: "painting.jpg", title: "Mt. Wilson", caption: "Oil on canvas, 2024",
+    desk: { x: 3,  y: 3.7, w: 26, r: -4 },  mobile: { x: 2,  y: 0,    w: 48, r: -3 } },
+  { src: "ski.jpg", title: "Skinning up Mt. Hood", caption: "A crisp morning in the mountains",
+    desk: { x: 31, y: 0.7, w: 35, r: 2.5 }, mobile: { x: 3,  y: 81,   w: 52, r: -2 } },
+  { src: "album.webp", object: true, title: "Purgatory, Tyler Childers", caption: "On repeat",
     desk: { x: 70, y: 3.7, w: 27, r: 5 },   mobile: { x: 52, y: 33.5, w: 44, r: 5 } },
-  { src: IMG.river, title: "Down the canyon", caption: "Boating my bucket list river",
-    desk: { x: 11, y: 38.4, w: 22, r: 3 },  mobile: { x: 4,  y: 140, w: 40, r: -3 } },
-  { src: IMG.dog, title: "Trail partner", caption: "Always in front",
-    desk: { x: 37, y: 36.9, w: 22, r: -5 }, mobile: { x: 54, y: 95,  w: 38, r: 4 } },
-  { src: IMG.book, object: true, title: "Into Thin Air", caption: "A favorite read",
-    desk: { x: 66, y: 34, w: 18, r: -3 },   mobile: { x: 52, y: 165, w: 34, r: 3 } }
+  { src: "river.jpg", title: "Down the canyon", caption: "Boating my bucket list river",
+    desk: { x: 11, y: 38.4, w: 22, r: 3 },  mobile: { x: 4,  y: 140,  w: 40, r: -3 } },
+  { src: "dog.jpg", title: "Trail partner", caption: "Always in front",
+    desk: { x: 37, y: 36.9, w: 22, r: -5 }, mobile: { x: 54, y: 95,   w: 38, r: 4 } },
+  { src: "book.jpg", object: true, title: "Into Thin Air", caption: "A favorite read",
+    desk: { x: 66, y: 34, w: 18, r: -3 },   mobile: { x: 52, y: 165,  w: 34, r: 3 } }
 ];
 
-/* ---------- Build ---------- */
-const stage = document.getElementById("stage");
-let z = NOTES.length;
+/* Placeholder tools: swap in your own */
+const TOOLS = [
+  { tool: "Figma", kind: "Design", title: "Figma", caption: "Where most of the work starts",
+    desk: { x: 4,  y: 2,  w: 22, r: -3 },  mobile: { x: 3,  y: 0,  w: 46, r: -3 } },
+  { tool: "Framer", kind: "Build", title: "Framer", caption: "Runs this site",
+    desk: { x: 38, y: 0,  w: 22, r: 2 },   mobile: { x: 51, y: 22, w: 46, r: 3 } },
+  { tool: "Claude", kind: "Prototype", title: "Claude", caption: "Turns ideas into working code",
+    desk: { x: 72, y: 4,  w: 22, r: 4 },   mobile: { x: 10, y: 92, w: 46, r: -2 } }
+];
 
-const cards = NOTES.map((n, i) => {
-  const el = document.createElement("figure");
-  el.className = "card" + (n.object ? " object" : "");
-  el.tabIndex = 0;
-  el.style.zIndex = i + 1;
-  el.style.setProperty("--d", `${i * 80}ms`);
-  el.innerHTML = `
-    <div class="media"><img src="${n.src}" alt="${n.title}" draggable="false"></div>
-    <figcaption><strong>${n.title}</strong>${n.caption}</figcaption>`;
-  stage.appendChild(el);
-  return { el, n, x: 0, y: 0, r: 0 };
-});
+/* ---------- Board engine ---------- */
+const isMobile = () => window.innerWidth <= 720;
 
-function layoutKey() { return window.innerWidth <= 720 ? "mobile" : "desk"; }
+function createBoard(stage, items) {
+  let z = items.length, active = null;
 
-function place(c, x, y, r) {
-  c.x = x; c.y = y; c.r = r;
-  c.el.style.setProperty("--x", `${x}px`);
-  c.el.style.setProperty("--y", `${y}px`);
-  c.el.style.setProperty("--r", `${r}deg`);
-}
-
-/* Lay out every card, then size the stage to fit them exactly (no empty space above or below) */
-function tidy() {
-  const key = layoutKey(), W = stage.clientWidth;
-  cards.forEach(c => c.el.style.setProperty("--w", `${c.n[key].w}%`));
-  const boxes = cards.map(c => {
-    const L = c.n[key];
-    const w = (L.w / 100) * W, h = c.el.offsetHeight;
-    const a = Math.abs(L.r * Math.PI / 180);
-    const half = (w * Math.sin(a) + h * Math.cos(a)) / 2;   // half-height once rotated
-    const x = (L.x / 100) * W, y = (L.y / 100) * W;
-    return { c, L, x, y, top: y + h / 2 - half, bottom: y + h / 2 + half };
+  const cards = items.map((n, i) => {
+    const el = document.createElement("figure");
+    el.className = "card" + (n.object ? " object" : "");
+    el.tabIndex = 0;
+    el.style.zIndex = i + 1;
+    el.style.setProperty("--d", `${i * 80}ms`);
+    const media = n.tool
+      ? `<div class="media paper"><span class="kind">${n.kind}</span><span class="name">${n.tool}</span></div>`
+      : `<div class="media"><img src="${n.src}" alt="${n.title}" draggable="false"></div>`;
+    const head = n.tool ? "" : `<strong>${n.title}</strong>`;   // tool cards already show the name
+    el.innerHTML = `${media}<figcaption>${head}${n.caption}</figcaption>`;
+    stage.appendChild(el);
+    return { el, n, x: 0, y: 0, r: 0 };
   });
-  const top = Math.min(...boxes.map(b => b.top));
-  const bottom = Math.max(...boxes.map(b => b.bottom));
-  stage.style.height = `${Math.ceil(bottom - top)}px`;
-  boxes.forEach(b => place(b.c, b.x, b.y - top, b.L.r));
+
+  const key = () => (isMobile() ? "mobile" : "desk");
+
+  function place(c, x, y, r) {
+    c.x = x; c.y = y; c.r = r;
+    c.el.style.setProperty("--x", `${x}px`);
+    c.el.style.setProperty("--y", `${y}px`);
+    c.el.style.setProperty("--r", `${r}deg`);
+  }
+
+  /* Lay out every card, then size the board to fit them exactly */
+  function tidy() {
+    if (stage.hidden) return;
+    const k = key(), W = stage.clientWidth;
+    cards.forEach(c => c.el.style.setProperty("--w", `${c.n[k].w}%`));
+    const boxes = cards.map(c => {
+      const L = c.n[k];
+      const w = (L.w / 100) * W, h = c.el.offsetHeight;
+      const a = Math.abs(L.r * Math.PI / 180);
+      const half = (w * Math.sin(a) + h * Math.cos(a)) / 2;
+      const x = (L.x / 100) * W, y = (L.y / 100) * W;
+      return { c, L, x, y, top: y + h / 2 - half, bottom: y + h / 2 + half };
+    });
+    const top = Math.min(...boxes.map(b => b.top));
+    const bottom = Math.max(...boxes.map(b => b.bottom));
+    stage.style.height = `${Math.ceil(bottom - top)}px`;
+    boxes.forEach(b => place(b.c, b.x, b.y - top, b.L.r));
+  }
+
+  function clamp(c, x, y) {
+    const W = stage.clientWidth, H = stage.clientHeight;
+    const w = c.el.offsetWidth, h = c.el.offsetHeight;
+    return [
+      Math.min(Math.max(x, -w * 0.25), W - w * 0.75),
+      Math.min(Math.max(y, -h * 0.1), H - h * 0.6)
+    ];
+  }
+
+  stage.addEventListener("pointerdown", e => {
+    const el = e.target.closest(".card");
+    if (!el || e.button > 0) return;
+    const c = cards.find(k => k.el === el);
+    active = { c, sx: e.clientX, sy: e.clientY, ox: c.x, oy: c.y };
+    el.style.zIndex = ++z;
+    el.classList.add("dragging");
+    el.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  stage.addEventListener("pointermove", e => {
+    if (!active) return;
+    const { c, sx, sy, ox, oy } = active;
+    const [x, y] = clamp(c, ox + e.clientX - sx, oy + e.clientY - sy);
+    const tilt = Math.max(-8, Math.min(8, (e.movementX || 0) * 0.6));
+    place(c, x, y, c.n[key()].r * 0.5 + tilt);
+  });
+  const release = () => {
+    if (!active) return;
+    const { c } = active;
+    c.el.classList.remove("dragging");
+    place(c, c.x, c.y, c.n[key()].r * 0.5);
+    active = null;
+  };
+  stage.addEventListener("pointerup", release);
+  stage.addEventListener("pointercancel", release);
+
+  stage.addEventListener("keydown", e => {
+    const el = e.target.closest(".card");
+    if (!el) return;
+    const step = e.shiftKey ? 40 : 12;
+    const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
+    if (!d) return;
+    e.preventDefault();
+    const c = cards.find(k => k.el === el);
+    el.style.zIndex = ++z;
+    const [x, y] = clamp(c, c.x + d[0], c.y + d[1]);
+    place(c, x, y, c.r);
+  });
+
+  /* Show the board: lay it out, then deal the cards in */
+  function enter() {
+    stage.classList.remove("ready");
+    tidy();
+    void stage.offsetWidth;
+    requestAnimationFrame(() => stage.classList.add("ready"));
+  }
+
+  const imagesLoaded = Promise.all([...stage.querySelectorAll("img")].map(img =>
+    img.complete ? 0 : new Promise(r => { img.onload = img.onerror = r; })
+  ));
+
+  return { stage, tidy, enter, imagesLoaded };
 }
 
-/* Keep a card inside the stage */
-function clamp(c, x, y) {
-  const W = stage.clientWidth, H = stage.clientHeight;
-  const w = c.el.offsetWidth, h = c.el.offsetHeight;
-  return [
-    Math.min(Math.max(x, -w * 0.25), W - w * 0.75),
-    Math.min(Math.max(y, -h * 0.1), H - h * 0.6)
-  ];
+const boards = {
+  life: createBoard(document.getElementById("board-life"), LIFE),
+  tools: createBoard(document.getElementById("board-tools"), TOOLS)
+};
+
+/* ---------- Tabs ---------- */
+const tabs = [...document.querySelectorAll('.tabs [role="tab"]')];
+const indicator = document.querySelector(".tabs .indicator");
+let current = "life";
+
+function moveIndicator(btn) {
+  indicator.style.width = `${btn.offsetWidth}px`;
+  indicator.style.transform = `translateX(${btn.offsetLeft}px)`;
 }
 
-/* ---------- Drag ---------- */
-let active = null;
-
-stage.addEventListener("pointerdown", e => {
-  const el = e.target.closest(".card");
-  if (!el || e.button > 0) return;
-  const c = cards.find(k => k.el === el);
-  active = { c, sx: e.clientX, sy: e.clientY, ox: c.x, oy: c.y };
-  el.style.zIndex = ++z;
-  el.classList.add("dragging");
-  el.setPointerCapture(e.pointerId);
-  e.preventDefault();
-});
-
-stage.addEventListener("pointermove", e => {
-  if (!active) return;
-  const { c, sx, sy, ox, oy } = active;
-  const dx = e.clientX - sx, dy = e.clientY - sy;
-  const [x, y] = clamp(c, ox + dx, oy + dy);
-  // a gentle tilt in the direction of travel
-  const tilt = Math.max(-8, Math.min(8, (e.movementX || 0) * 0.6));
-  place(c, x, y, c.n[layoutKey()].r * 0.5 + tilt);
-});
-
-function release() {
-  if (!active) return;
-  const { c } = active;
-  c.el.classList.remove("dragging");
-  place(c, c.x, c.y, c.n[layoutKey()].r * 0.5);
-  active = null;
+function select(name, focus) {
+  if (name === current) return;
+  tabs.forEach(t => {
+    const on = t.id === `tab-${name}`;
+    t.setAttribute("aria-selected", on);
+    t.tabIndex = on ? 0 : -1;
+    if (on) { moveIndicator(t); if (focus) t.focus(); }
+  });
+  boards[current].stage.hidden = true;
+  boards[current].stage.classList.remove("ready");
+  boards[name].stage.hidden = false;
+  current = name;
+  boards[name].enter();
 }
-stage.addEventListener("pointerup", release);
-stage.addEventListener("pointercancel", release);
 
-/* Keyboard: focus a card, move it with the arrow keys */
-stage.addEventListener("keydown", e => {
-  const el = e.target.closest(".card");
-  if (!el) return;
-  const step = e.shiftKey ? 40 : 12;
-  const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
-  if (!d) return;
-  e.preventDefault();
-  const c = cards.find(k => k.el === el);
-  el.style.zIndex = ++z;
-  const [x, y] = clamp(c, c.x + d[0], c.y + d[1]);
-  place(c, x, y, c.r);
+tabs.forEach((t, i) => {
+  t.addEventListener("click", () => select(t.id.replace("tab-", "")));
+  t.addEventListener("keydown", e => {
+    const d = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+    if (!d) return;
+    e.preventDefault();
+    const next = tabs[(i + d + tabs.length) % tabs.length];
+    select(next.id.replace("tab-", ""), true);
+  });
 });
 
+/* ---------- Start ---------- */
+moveIndicator(tabs[0]);
+boards.life.tidy();
+boards.life.imagesLoaded.then(() => boards.life.enter());
+if (document.fonts) document.fonts.ready.then(() => {
+  moveIndicator(document.querySelector('.tabs [aria-selected="true"]'));
+  boards[current].tidy();
+});
 
-/* Re-lay out when switching between desktop and mobile */
-let lastW = stage.clientWidth, rt;
+let lastW = window.innerWidth, rt;
 window.addEventListener("resize", () => {
   clearTimeout(rt);
   rt = setTimeout(() => {
-    if (stage.clientWidth !== lastW) { lastW = stage.clientWidth; tidy(); }
+    if (window.innerWidth === lastW) return;
+    lastW = window.innerWidth;
+    moveIndicator(document.querySelector('.tabs [aria-selected="true"]'));
+    boards[current].tidy();
   }, 120);
 });
-
-/* Initial layout, then fade in once images have sized */
-tidy();
-Promise.all([...stage.querySelectorAll("img")].map(img =>
-  img.complete ? 0 : new Promise(r => { img.onload = img.onerror = r; })
-)).then(() => {
-  tidy();
-  requestAnimationFrame(() => document.body.classList.add("ready"));
-});
-/* Captions change height once the web fonts arrive */
-if (document.fonts) document.fonts.ready.then(tidy);
 </script>
 </body>
 </html>
