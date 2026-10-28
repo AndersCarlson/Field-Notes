@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Field Notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --ink: #000000;
+    --muted: rgba(0, 0, 0, 0.6);
+    --rule: #dcd8ce;
+    --serif: "Newsreader", "Source Serif 4", Georgia, serif;
+    --sans: "Inter", system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: transparent; }
+  body {
+    background: transparent;
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 24px 24px 32px; }
+
+
+
+  /* Stage */
+  .stage {
+    position: relative;
+    height: 850px;
+    touch-action: pan-y;
+  }
+  .card {
+    position: absolute;
+    top: 0; left: 0;
+    width: var(--w);
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    transform: translate(var(--x), var(--y)) rotate(var(--r));
+    transition: transform .6s cubic-bezier(.2,.7,.2,1);
+    will-change: transform;
+  }
+  .card.dragging { cursor: grabbing; transition: none; }
+  .card .media {
+    position: relative;
+    transition: transform .25s ease, box-shadow .25s ease;
+    box-shadow: 0 1px 2px rgba(29,28,26,.08), 0 8px 24px rgba(29,28,26,.08);
+  }
+  .card.object .media { box-shadow: none; }
+  .card img {
+    display: block; width: 100%; height: auto;
+    pointer-events: none;
+    -webkit-user-drag: none;
+  }
+  .card:hover .media { transform: scale(1.015); }
+  .card.dragging .media {
+    transform: scale(1.04);
+    box-shadow: 0 2px 4px rgba(29,28,26,.08), 0 24px 48px rgba(29,28,26,.18);
+  }
+  .card.object.dragging .media { box-shadow: none; filter: drop-shadow(0 18px 24px rgba(29,28,26,.18)); }
+  .card:focus-visible { outline: 1px solid var(--ink); outline-offset: 8px; }
+  .card figcaption {
+    margin-top: 10px;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--muted);
+  }
+  .card figcaption strong {
+    display: block;
+    font-family: var(--serif); font-weight: 600;
+    font-size: 20px; line-height: 1.2; letter-spacing: -0.01em; color: var(--ink);
+    margin-bottom: 2px;
+  }
+
+  /* Entrance */
+  .card { opacity: 0; }
+  .ready .card { opacity: 1; transition: transform .6s cubic-bezier(.2,.7,.2,1), opacity .6s ease; transition-delay: var(--d, 0ms); }
+  .ready .card.dragging, .ready .card.settled { transition-delay: 0ms; }
+  .ready .card.dragging { transition: none; }
+
+  @media (max-width: 720px) {
+    .wrap { padding: 16px 16px 24px; }
+    .stage { height: 1280px; }
+    .card figcaption { font-size: 12px; }
+    .card figcaption strong { font-size: 17px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card, .ready .card { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="stage" id="stage" aria-label="Draggable collage of paintings and photos"></section>
+</div>
+
+<script>
+/* ============================================================
+   EDIT YOUR NOTES HERE
+   - src:     image URL or embedded data URI
+   - title / caption: text under each piece
+   - object:  true for records/books (no shadow box, blends into page)
+   - desk / mobile: starting layout
+       x, y = position as % of the stage (top-left corner of the card)
+       w    = width as % of the stage
+       r    = rotation in degrees
+   ============================================================ */
+const IMG = {
+  "ski": "ski.jpg",
+  "album": "album.webp",
+  "dog": "dog.jpg",
+  "painting": "painting.jpg",
+  "book": "book.jpg",
+  "river": "river.jpg"
+};
+
+const NOTES = [
+  { src: IMG.painting, title: "Mt. Wilson", caption: "Oil on canvas, 2024",
+    desk: { x: 3,  y: 5,  w: 26, r: -4 },  mobile: { x: 2,  y: 1,  w: 58, r: -3 } },
+  { src: IMG.ski, title: "Skinning up Mt. Hood", caption: "A crisp morning in the mountains",
+    desk: { x: 31, y: 1,  w: 35, r: 2.5 }, mobile: { x: 4,  y: 35, w: 62, r: -2 } },
+  { src: IMG.album, object: true, title: "Purgatory, Tyler Childers", caption: "On repeat",
+    desk: { x: 70, y: 5,  w: 27, r: 5 },   mobile: { x: 46, y: 19, w: 52, r: 5 } },
+  { src: IMG.river, title: "Down the canyon", caption: "Boating my bucket list river",
+    desk: { x: 11, y: 52, w: 22, r: 3 },   mobile: { x: 4,  y: 59, w: 46, r: -3 } },
+  { src: IMG.dog, title: "Trail partner", caption: "Always in front",
+    desk: { x: 37, y: 50, w: 22, r: -5 },  mobile: { x: 52, y: 52, w: 44, r: 4 } },
+  { src: IMG.book, object: true, title: "Into Thin Air", caption: "A favorite read",
+    desk: { x: 66, y: 46, w: 18, r: -3 },  mobile: { x: 50, y: 78, w: 38, r: 3 } }
+];
+
+/* ---------- Build ---------- */
+const stage = document.getElementById("stage");
+let z = NOTES.length;
+
+const cards = NOTES.map((n, i) => {
+  const el = document.createElement("figure");
+  el.className = "card" + (n.object ? " object" : "");
+  el.tabIndex = 0;
+  el.style.zIndex = i + 1;
+  el.style.setProperty("--d", `${i * 80}ms`);
+  el.innerHTML = `
+    <div class="media"><img src="${n.src}" alt="${n.title}" draggable="false"></div>
+    <figcaption><strong>${n.title}</strong>${n.caption}</figcaption>`;
+  stage.appendChild(el);
+  return { el, n, x: 0, y: 0, r: 0 };
+});
+
+function layoutKey() { return window.innerWidth <= 720 ? "mobile" : "desk"; }
+
+function place(c, x, y, r) {
+  c.x = x; c.y = y; c.r = r;
+  c.el.style.setProperty("--x", `${x}px`);
+  c.el.style.setProperty("--y", `${y}px`);
+  c.el.style.setProperty("--r", `${r}deg`);
+}
+
+function home(c) {
+  const L = c.n[layoutKey()];
+  const W = stage.clientWidth, H = stage.clientHeight;
+  c.el.style.setProperty("--w", `${L.w}%`);
+  place(c, (L.x / 100) * W, (L.y / 100) * H, L.r);
+}
+
+function tidy() { cards.forEach(home); }
+
+/* Keep a card inside the stage */
+function clamp(c, x, y) {
+  const W = stage.clientWidth, H = stage.clientHeight;
+  const w = c.el.offsetWidth, h = c.el.offsetHeight;
+  return [
+    Math.min(Math.max(x, -w * 0.25), W - w * 0.75),
+    Math.min(Math.max(y, -h * 0.1), H - h * 0.6)
+  ];
+}
+
+/* ---------- Drag ---------- */
+let active = null;
+
+stage.addEventListener("pointerdown", e => {
+  const el = e.target.closest(".card");
+  if (!el || e.button > 0) return;
+  const c = cards.find(k => k.el === el);
+  active = { c, sx: e.clientX, sy: e.clientY, ox: c.x, oy: c.y };
+  el.style.zIndex = ++z;
+  el.classList.add("dragging");
+  el.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+
+stage.addEventListener("pointermove", e => {
+  if (!active) return;
+  const { c, sx, sy, ox, oy } = active;
+  const dx = e.clientX - sx, dy = e.clientY - sy;
+  const [x, y] = clamp(c, ox + dx, oy + dy);
+  // a gentle tilt in the direction of travel
+  const tilt = Math.max(-8, Math.min(8, (e.movementX || 0) * 0.6));
+  place(c, x, y, c.n[layoutKey()].r * 0.5 + tilt);
+});
+
+function release() {
+  if (!active) return;
+  const { c } = active;
+  c.el.classList.remove("dragging");
+  place(c, c.x, c.y, c.n[layoutKey()].r * 0.5);
+  active = null;
+}
+stage.addEventListener("pointerup", release);
+stage.addEventListener("pointercancel", release);
+
+/* Keyboard: focus a card, move it with the arrow keys */
+stage.addEventListener("keydown", e => {
+  const el = e.target.closest(".card");
+  if (!el) return;
+  const step = e.shiftKey ? 40 : 12;
+  const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
+  if (!d) return;
+  e.preventDefault();
+  const c = cards.find(k => k.el === el);
+  el.style.zIndex = ++z;
+  const [x, y] = clamp(c, c.x + d[0], c.y + d[1]);
+  place(c, x, y, c.r);
+});
+
+
+/* Re-lay out when switching between desktop and mobile */
+let lastKey = layoutKey();
+window.addEventListener("resize", () => {
+  const k = layoutKey();
+  if (k !== lastKey) { lastKey = k; tidy(); }
+  else cards.forEach(c => { const [x, y] = clamp(c, c.x, c.y); place(c, x, y, c.r); });
+});
+
+/* Initial layout, then fade in once images have sized */
+tidy();
+Promise.all([...stage.querySelectorAll("img")].map(img =>
+  img.complete ? 0 : new Promise(r => { img.onload = img.onerror = r; })
+)).then(() => {
+  tidy();
+  requestAnimationFrame(() => document.body.classList.add("ready"));
+});
+</script>
+</body>
+</html>
