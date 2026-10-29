@@ -106,90 +106,91 @@
   }
 
 
-  /* Tools: a timeline of things I've built */
-  .log { --line: rgba(0, 0, 0, 0.1); --chip: #ffffff; border-left: 1px solid var(--line); }
+  /* Tools: a timeline of things I've built. Text on the left, screenshot on the right */
+  .log { --line: rgba(0, 0, 0, 0.1); border-left: 1px solid var(--line); }
   .log.enter .entry { animation: rise .6s cubic-bezier(.2,.7,.2,1) both; }
+  .log.enter .entry:nth-child(2) { animation-delay: 80ms; }
+  .log.enter .entry:nth-child(3) { animation-delay: 160ms; }
   @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
   .entry {
     display: grid;
     grid-template-columns: minmax(0, 36%) minmax(0, 1fr);
-    gap: 0 24px;
+    grid-template-rows: auto 1fr;
+    grid-template-areas: "head shot" "info shot";
+    column-gap: 32px;
     padding: 0 0 72px 28px;
   }
   .entry:last-child { padding-bottom: 0; }
   .entry .head {
+    grid-area: head;
     position: relative;
     display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
   }
   /* rounded elbow from the vertical line into the chips */
   .entry .head::before {
     content: "";
     position: absolute;
     left: -29px; top: -1px;
-    width: 22px; height: 20px;
+    width: 22px; height: 15px;
     border-left: 1px solid var(--line);
     border-bottom: 1px solid var(--line);
-    border-bottom-left-radius: 14px;
+    border-bottom-left-radius: 12px;
   }
-  /* line from the chips over to the media */
+  /* line from the chips over to the screenshot */
   .entry .head::after {
     content: "";
     flex: 1;
-    min-width: 16px;
+    min-width: 12px;
     height: 1px;
-    margin: 19px -24px 0 0;
+    margin-right: -32px;
     background: var(--line);
   }
   .chip {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    height: 38px;
-    padding: 0 16px 0 14px;
-    background: var(--chip);
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px;
     border: 1px solid var(--line);
     border-radius: 999px;
-    font-size: 15px;
+    font-size: 12px;
     color: var(--muted);
     white-space: nowrap;
   }
-  .chip svg { flex: none; }
-  .entry .body { min-width: 0; }
+  .chip svg { flex: none; width: 11px; height: 11px; }
+  .entry .info { grid-area: info; min-width: 0; padding-top: 20px; }
   .shot {
+    grid-area: shot;
     display: block;
-    background: #f2f2f0;
-    padding: 6%;
+    min-width: 0;
+    align-self: start;
+    border-radius: 10px;
     overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.12);
   }
   .shot img {
     display: block;
     width: 100%;
     height: auto;
-    border-radius: 10px;
-    box-shadow: 0 1px 2px rgba(0,0,0,.12), 0 16px 40px rgba(0,0,0,.18);
-    transition: transform .5s cubic-bezier(.2,.7,.2,1);
+    transition: transform .6s cubic-bezier(.2,.7,.2,1);
   }
-  .shot:hover img { transform: scale(1.015); }
+  .shot:hover img { transform: scale(1.02); }
   .shot:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
   .entry .title {
     font-family: var(--serif); font-weight: 600;
-    font-size: 26px; line-height: 1.2; letter-spacing: -0.01em;
-    margin: 24px 0 8px;
+    font-size: 26px; line-height: 1.15; letter-spacing: -0.01em;
+    margin-bottom: 10px;
     text-wrap: balance;
   }
-  .entry p {
-    font-size: 17px; line-height: 1.7; color: rgba(0, 0, 0, 0.8);
-    max-width: 62ch;
-  }
-  .entry p + p { margin-top: 12px; }
+  .entry p { font-size: 15px; line-height: 1.6; color: var(--muted); }
+  .entry p + p { margin-top: 10px; }
   .links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
   .links a {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 6px 12px;
-    font-size: 15px; color: var(--ink); text-decoration: none;
+    font-size: 14px; color: var(--ink); text-decoration: none;
     background: var(--track);
     border-radius: 6px;
     transition: background .2s ease;
@@ -203,11 +204,17 @@
     .tabs { margin-bottom: 20px; }
     .card figcaption { margin-top: 8px; font-size: 11px; }
     .card figcaption strong { font-size: 15px; }
-    .entry { grid-template-columns: 1fr; gap: 16px; padding-left: 20px; }
-    .entry .head::before { left: -20px; width: 14px; }
-    .entry .head::after { display: none; }
+    .entry {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto;
+      grid-template-areas: "head" "shot" "info";
+      row-gap: 14px;
+      padding: 0 0 56px 20px;
+    }
+    .entry .head::before { left: -21px; width: 14px; }
+    .entry .head::after { margin-right: 0; }
+    .entry .info { padding-top: 4px; }
     .entry .title { font-size: 22px; }
-    .entry p { font-size: 15px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .stage.ready .card, .tabs .indicator, .shot img { transition: none; }
@@ -412,16 +419,16 @@ function createLog(stage, entries) {
         <span class="chip">${ICON_DATE}${e.date}</span>
         <span class="chip">${ICON_TAG}${e.tag}</span>
       </div>
-      <div class="body">
-        <a class="shot" href="${e.url}" target="_blank" rel="noopener" aria-label="Open ${e.title}">
-          <img src="${e.image}" alt="Screenshot of ${e.title}" loading="lazy">
-        </a>
+      <div class="info">
         <h2 class="title">${e.title}</h2>
         ${e.text.map(p => `<p>${p}</p>`).join("")}
         <div class="links">
           ${e.links.map(l => `<a href="${l.href}" target="_blank" rel="noopener">${l.label} <span aria-hidden="true">↗</span></a>`).join("")}
         </div>
       </div>
+      <a class="shot" href="${e.url}" target="_blank" rel="noopener" aria-label="Open ${e.title}">
+        <img src="${e.image}" alt="Screenshot of ${e.title}" loading="lazy">
+      </a>
     </article>`).join("");
   return {
     stage,
