@@ -220,12 +220,12 @@
 <div class="wrap">
   <div class="tabs" role="tablist" aria-label="Play">
     <span class="indicator" aria-hidden="true"></span>
-    <button role="tab" id="tab-life" aria-controls="board-life" aria-selected="true">Life</button>
-    <button role="tab" id="tab-tools" aria-controls="board-tools" aria-selected="false" tabindex="-1">Tools</button>
+    <button role="tab" id="tab-tools" aria-controls="board-tools" aria-selected="true">Tools</button>
+    <button role="tab" id="tab-life" aria-controls="board-life" aria-selected="false" tabindex="-1">Life</button>
   </div>
 
-  <section class="stage" id="board-life" role="tabpanel" aria-labelledby="tab-life"></section>
-  <section class="log" id="board-tools" role="tabpanel" aria-labelledby="tab-tools" hidden></section>
+  <section class="log" id="board-tools" role="tabpanel" aria-labelledby="tab-tools"></section>
+  <section class="stage" id="board-life" role="tabpanel" aria-labelledby="tab-life" hidden></section>
 </div>
 
 <script>
@@ -388,9 +388,12 @@ function createBoard(stage, items) {
   /* Show the board: lay it out, then deal the cards in */
   function enter() {
     stage.classList.remove("ready");
-    tidy();
-    void stage.offsetWidth;
-    requestAnimationFrame(() => stage.classList.add("ready"));
+    imagesLoaded.then(() => {
+      if (stage.hidden) return;
+      tidy();
+      void stage.offsetWidth;
+      requestAnimationFrame(() => stage.classList.add("ready"));
+    });
   }
 
   const imagesLoaded = Promise.all([...stage.querySelectorAll("img")].map(img =>
@@ -440,7 +443,7 @@ const boards = {
 /* ---------- Tabs ---------- */
 const tabs = [...document.querySelectorAll('.tabs [role="tab"]')];
 const indicator = document.querySelector(".tabs .indicator");
-let current = "life";
+let current = "tools";
 
 function moveIndicator(btn) {
   indicator.style.width = `${btn.offsetWidth}px`;
@@ -475,8 +478,7 @@ tabs.forEach((t, i) => {
 
 /* ---------- Start ---------- */
 moveIndicator(tabs[0]);
-boards.life.tidy();
-boards.life.imagesLoaded.then(() => boards.life.enter());
+boards.tools.enter();
 if (document.fonts) document.fonts.ready.then(() => {
   moveIndicator(document.querySelector('.tabs [aria-selected="true"]'));
   boards[current].tidy();
