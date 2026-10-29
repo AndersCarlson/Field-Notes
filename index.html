@@ -6,7 +6,7 @@
 <title>Field Notes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   /* Two draggable boards (Life, Tools) under a pill tab switch; transparent so it sits on any page */
   :root {
@@ -178,14 +178,10 @@
   }
   .shot:hover img { transform: scale(1.02); }
   .shot:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
-  .entry .title {
-    font-family: var(--serif); font-weight: 600;
-    font-size: 26px; line-height: 1.15; letter-spacing: -0.01em;
-    margin-bottom: 10px;
-    text-wrap: balance;
-  }
-  .entry p { font-size: 15px; line-height: 1.6; color: var(--muted); }
-  .entry p + p { margin-top: 10px; }
+  /* Same text styles as the project descriptions on anderscarlson.co */
+  .entry p { font-size: 17px; line-height: 1.7; color: rgba(0, 0, 0, 0.8); }
+  .entry p strong { font-weight: 600; color: rgba(0, 0, 0, 0.85); }
+  .entry p + p { margin-top: 12px; }
   .links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
   .links a {
     display: inline-flex; align-items: center; gap: 6px;
@@ -214,7 +210,7 @@
     .entry .head::before { left: -21px; width: 14px; }
     .entry .head::after { margin-right: 0; }
     .entry .info { padding-top: 4px; }
-    .entry .title { font-size: 22px; }
+    .entry p { font-size: 16px; line-height: 1.65; }
   }
   @media (prefers-reduced-motion: reduce) {
     .stage.ready .card, .tabs .indicator, .shot img { transition: none; }
@@ -420,8 +416,9 @@ function createLog(stage, entries) {
         <span class="chip">${ICON_TAG}${e.tag}</span>
       </div>
       <div class="info">
-        <h2 class="title">${e.title}</h2>
-        ${e.text.map(p => `<p>${p}</p>`).join("")}
+        ${e.text.map((p, i) => i === 0
+          ? `<p><strong>${e.title}</strong> – ${p}</p>`
+          : `<p>${p}</p>`).join("")}
         <div class="links">
           ${e.links.map(l => `<a href="${l.href}" target="_blank" rel="noopener">${l.label} <span aria-hidden="true">↗</span></a>`).join("")}
         </div>
