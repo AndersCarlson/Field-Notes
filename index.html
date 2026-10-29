@@ -254,10 +254,10 @@ const LIFE = [
     desk: { x: 66, y: 34, w: 18, r: -3 },   mobile: { x: 52, y: 165,  w: 34, r: 3 } }
 ];
 
-/* Tools timeline: newest first. Each entry: date, tag, image, title, text (paragraphs), links */
+/* Tools timeline: newest first. Each entry: category, tag, image, title, text (paragraphs), links */
 const TOOLS = [
   {
-    date: "Oct 2026",
+    category: "Finance",
     tag: "Open source",
     image: "never-budget.jpg",
     url: "https://anderscarlson.github.io/Never-Budget/",
@@ -271,7 +271,7 @@ const TOOLS = [
     ]
   },
   {
-    date: "Oct 2026",
+    category: "Design",
     tag: "Open source",
     image: "gradient-grain.jpg",
     url: "https://anderscarlson.github.io/Gradient-Tool/",
@@ -409,7 +409,7 @@ function createLog(stage, entries) {
   stage.innerHTML = entries.map(e => `
     <article class="entry">
       <div class="head">
-        <span class="chip">${ICON_DATE}${e.date}</span>
+        <span class="chip">${ICON_DATE}${e.category}</span>
         <span class="chip">${ICON_TAG}${e.tag}</span>
       </div>
       <div class="info">
